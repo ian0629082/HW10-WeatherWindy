@@ -1,0 +1,8 @@
+.env
+weather_observation.csv
+weather.db
+O-A0001-001.json
+design.md
+__pycache__/
+*.pyc
+uvicorn.*.log

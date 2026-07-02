@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>&#20013;&#22830;&#27683;&#35937;&#32626;&#21363;&#26178;&#22825;&#27683;&#20736;&#34920;&#26495;</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      background: #eef5f9;
+      color: #142433;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 10%, rgba(52, 152, 219, 0.18), transparent 28%),
+        linear-gradient(145deg, #f7fbfd 0%, #edf5f9 48%, #e7f1f5 100%);
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 500;
+      padding: 18px 24px;
+      background: rgba(255, 255, 255, 0.92);
+      border-bottom: 1px solid rgba(164, 184, 200, 0.45);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 10px 30px rgba(50, 82, 110, 0.08);
+    }
+    .topbar {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 280px;
+    }
+    .brand-mark {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #0f74bd, #21a7b8);
+      color: white;
+      font-size: 24px;
+      box-shadow: 0 10px 24px rgba(15, 116, 189, 0.28);
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+    .status {
+      margin-top: 4px;
+      color: #5d7182;
+      font-size: 13px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 8px;
+      background: #f6fafc;
+      border: 1px solid #dce8ef;
+      border-radius: 8px;
+    }
+    .field { display: grid; gap: 4px; }
+    .field label {
+      color: #637789;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    select, button {
+      min-height: 38px;
+      border: 1px solid #c9d8e2;
+      border-radius: 6px;
+      padding: 8px 12px;
+      background: white;
+      color: #162838;
+      font: inherit;
+    }
+    select { min-width: 178px; }
+    button {
+      align-self: end;
+      border-color: #0f74bd;
+      background: linear-gradient(135deg, #0f74bd, #168fb2);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(15, 116, 189, 0.22);
+    }
+    main {
+      width: min(1440px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 22px 0 28px;
+      display: grid;
+      gap: 18px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      padding: 18px;
+      border: 1px solid #d7e5ed;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(242, 249, 252, 0.96));
+      box-shadow: 0 16px 40px rgba(61, 93, 118, 0.1);
+    }
+    .hero h2 { margin: 0 0 6px; font-size: 18px; }
+    .hero p { margin: 0; color: #607586; line-height: 1.6; }
+    .legend {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 9px;
+      color: #415568;
+      background: #ffffff;
+      border: 1px solid #d9e6ed;
+      border-radius: 999px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(140px, 1fr));
+      gap: 14px;
+    }
+    .card, .panel {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #d7e5ed;
+      border-radius: 8px;
+      box-shadow: 0 14px 34px rgba(58, 88, 111, 0.09);
+    }
+    .card {
+      position: relative;
+      min-height: 112px;
+      padding: 16px;
+      overflow: hidden;
+    }
+    .card::after {
+      content: "";
+      position: absolute;
+      right: -24px;
+      bottom: -28px;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: rgba(15, 116, 189, 0.08);
+    }
+    .rain-card::after { background: rgba(23, 120, 184, 0.14); }
+    .label {
+      color: #607586;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .value {
+      color: #10293c;
+      font-size: 27px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .hint { margin-top: 10px; color: #7a8d9b; font-size: 12px; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(360px, 1.18fr) minmax(360px, 0.82fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+    .panel {
+      overflow: hidden;
+      min-height: 560px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 15px 16px;
+      border-bottom: 1px solid #dce8ef;
+      background: #fbfdfe;
+    }
+    .panel-title { margin: 0; font-size: 16px; font-weight: 800; }
+    .panel-subtitle { color: #6f8291; font-size: 12px; white-space: nowrap; }
+    #map, #chart { width: 100%; height: 100%; min-height: 500px; }
+    .leaflet-popup-content-wrapper {
+      border-radius: 8px;
+      box-shadow: 0 12px 32px rgba(21, 48, 68, 0.2);
+    }
+    .popup-title { margin-bottom: 6px; color: #10293c; font-weight: 800; }
+    .popup-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 10px;
+      min-width: 190px;
+      color: #526575;
+    }
+    .popup-grid strong { color: #22384a; }
+    @media (max-width: 1200px) {
+      .cards { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
+      .layout, .hero { grid-template-columns: 1fr; }
+      .legend { justify-content: flex-start; }
+    }
+    @media (max-width: 640px) {
+      header { padding: 14px; }
+      main { width: min(100% - 24px, 1440px); }
+      .brand { min-width: 0; }
+      h1 { font-size: 19px; }
+      .controls, .field, select, button { width: 100%; }
+      .cards { grid-template-columns: 1fr; }
+      .panel { min-height: 460px; }
+      #map, #chart { min-height: 400px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">&#9728;</div>
+        <div>
+          <h1>&#20013;&#22830;&#27683;&#35937;&#32626;&#21363;&#26178;&#22825;&#27683;&#20736;&#34920;&#26495;</h1>
+          <div class="status" id="status">&#27491;&#22312;&#36617;&#20837;&#22825;&#27683;&#36039;&#26009;...</div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <label for="countySelect">&#32291;&#24066;&#31721;&#36984;</label>
+          <select id="countySelect" aria-label="county filter"></select>
+        </div>
+        <button id="refreshBtn">&#37325;&#26032;&#25972;&#29702;</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <h2>&#33258;&#21205;&#27683;&#35937;&#31449;&#35264;&#28204;&#33287;&#38477;&#38632;&#29575;&#20272;&#35336;</h2>
+        <p>&#25972;&#21512; CWA O-A0001-001 &#21363;&#26178;&#28204;&#31449;&#36039;&#26009;&#65292;&#20381;&#32291;&#24066;&#26597;&#30475;&#27683;&#28331;&#12289;&#28629;&#24230;&#12289;&#38632;&#37327;&#12289;&#39080;&#36895;&#33287;&#38477;&#38632;&#29575;&#12290;</p>
+      </div>
+      <div class="legend" aria-label="map marker legend">
+        <span><i class="dot" style="background:#1976d2"></i>&#20302;&#26044; 15&#176;C</span>
+        <span><i class="dot" style="background:#2e7d32"></i>15-25&#176;C</span>
+        <span><i class="dot" style="background:#f9a825"></i>25-30&#176;C</span>
+        <span><i class="dot" style="background:#d84315"></i>&#39640;&#26044; 30&#176;C</span>
+      </div>
+    </section>
+
+    <section class="cards">
+      <div class="card"><div class="label">&#28204;&#31449;&#25976;&#37327;</div><div class="value" id="stationCount">-</div><div class="hint">&#30446;&#21069;&#36039;&#26009;&#31558;&#25976;</div></div>
+      <div class="card"><div class="label">&#24179;&#22343;&#27683;&#28331;</div><div class="value" id="avgTemp">-</div><div class="hint">&#20840;&#21488;&#28204;&#31449;&#24179;&#22343;</div></div>
+      <div class="card"><div class="label">&#24179;&#22343;&#28629;&#24230;</div><div class="value" id="avgHumidity">-</div><div class="hint">&#30456;&#23565;&#28629;&#24230;</div></div>
+      <div class="card"><div class="label">&#32047;&#31309;&#38632;&#37327;</div><div class="value" id="totalRain">-</div><div class="hint">&#25152;&#26377;&#28204;&#31449;&#21152;&#32317;</div></div>
+      <div class="card"><div class="label">&#24179;&#22343;&#39080;&#36895;</div><div class="value" id="avgWind">-</div><div class="hint">&#27599;&#31186;&#20844;&#23610;</div></div>
+      <div class="card rain-card"><div class="label">&#24179;&#22343;&#38477;&#38632;&#29575;</div><div class="value" id="avgRainProb">-</div><div class="hint">heuristic-baseline-v1</div></div>
+    </section>
+
+    <section class="layout">
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">&#28204;&#31449;&#22320;&#22294;</h2>
+          <span class="panel-subtitle">&#38991;&#33394;&#20195;&#34920;&#27683;&#28331;&#21312;&#38291;</span>
+        </div>
+        <div id="map"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">&#32291;&#24066;&#28204;&#31449;&#25490;&#34892;</h2>
+          <span class="panel-subtitle">&#27683;&#28331;&#12289;&#28629;&#24230;&#12289;&#38477;&#38632;&#29575;</span>
+        </div>
+        <div id="chart"></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const text = {
+      loading: "\u6b63\u5728\u8f09\u5165\u5929\u6c23\u8cc7\u6599...",
+      latest: "\u6700\u65b0\u89c0\u6e2c\u6642\u9593",
+      allCounties: "\u5168\u90e8\u7e23\u5e02",
+      stations: "\u500b\u6e2c\u7ad9",
+      loadFailed: "\u8f09\u5165\u5931\u6557",
+      location: "\u4f4d\u7f6e",
+      observed: "\u89c0\u6e2c",
+      weather: "\u5929\u6c23",
+      temp: "\u6c23\u6eab",
+      humidity: "\u6fd5\u5ea6",
+      rain: "\u96e8\u91cf",
+      wind: "\u98a8\u901f",
+      pressure: "\u6c23\u58d3",
+      rainProb: "\u964d\u96e8\u7387",
+      station: "\u6e2c\u7ad9"
+    };
+
+    const api = "";
+    const statusEl = document.getElementById("status");
+    const countySelect = document.getElementById("countySelect");
+    const map = L.map("map", { zoomControl: false }).setView([23.7, 121], 7);
+    const markers = L.layerGroup().addTo(map);
+    let allStations = [];
+
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    function fmt(value, suffix = "") {
+      return value === null || value === undefined || value === "" ? "-" : `${value}${suffix}`;
+    }
+
+    function markerColor(temp) {
+      if (temp === null || temp === undefined || temp === "") return "#607d8b";
+      if (temp < 15) return "#1976d2";
+      if (temp < 25) return "#2e7d32";
+      if (temp < 30) return "#f9a825";
+      return "#d84315";
+    }
+
+    function markerIcon(station) {
+      const color = markerColor(station.air_temperature);
+      const size = Number(station.precipitation) > 0 || Number(station.rain_probability) >= 60 ? 15 : 11;
+      return L.divIcon({
+        className: "weather-marker",
+        html: `<span style="display:block;width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 2px 9px rgba(0,0,0,.32)"></span>`,
+        iconSize: [size + 4, size + 4],
+        iconAnchor: [size / 2, size / 2]
+      });
+    }
+
+    async function json(path) {
+      const response = await fetch(api + path);
+      if (!response.ok) throw new Error(`${path}: ${response.status}`);
+      return response.json();
+    }
+
+    function numericValues(stations, key) {
+      return stations
+        .map(station => Number(station[key]))
+        .filter(value => Number.isFinite(value));
+    }
+
+    function average(stations, key) {
+      const values = numericValues(stations, key);
+      if (!values.length) return null;
+      return Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) / 10;
+    }
+
+    function sum(stations, key) {
+      const values = numericValues(stations, key);
+      if (!values.length) return null;
+      return Math.round(values.reduce((total, value) => total + value, 0) * 10) / 10;
+    }
+
+    function latestObservationTime(stations) {
+      const times = stations.map(station => station.observation_time).filter(Boolean).sort();
+      return times.length ? times[times.length - 1] : "-";
+    }
+
+    function updateCards(stations) {
+      document.getElementById("stationCount").textContent = fmt(stations.length);
+      document.getElementById("avgTemp").textContent = fmt(average(stations, "air_temperature"), "\u00b0C");
+      document.getElementById("avgHumidity").textContent = fmt(average(stations, "relative_humidity"), "%");
+      document.getElementById("totalRain").textContent = fmt(sum(stations, "precipitation"), " mm");
+      document.getElementById("avgWind").textContent = fmt(average(stations, "wind_speed"), " m/s");
+      document.getElementById("avgRainProb").textContent = fmt(average(stations, "rain_probability"), "%");
+      statusEl.textContent = `${text.latest}\uff1a${latestObservationTime(stations)}`;
+    }
+
+    async function loadMap() {
+      allStations = await json("/api/map/stations/latest");
+      populateCounties(allStations);
+      renderCounty(countySelect.value);
+    }
+
+    function populateCounties(stations) {
+      const currentValue = countySelect.value;
+      const counties = [...new Set(stations.map(station => station.county_name).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, "zh-Hant"));
+      countySelect.innerHTML = "";
+      countySelect.appendChild(new Option(text.allCounties, ""));
+      counties.forEach(county => countySelect.appendChild(new Option(county, county)));
+      if (counties.includes(currentValue)) countySelect.value = currentValue;
+    }
+
+    function renderCounty(countyName) {
+      const stations = countyName
+        ? allStations.filter(station => station.county_name === countyName)
+        : allStations;
+
+      markers.clearLayers();
+      stations.forEach(station => {
+        L.marker([station.lat, station.lon], { icon: markerIcon(station) })
+          .addTo(markers)
+          .bindPopup(`
+            <div class="popup-title">${station.station_name}</div>
+            <div class="popup-grid">
+              <span>${text.location}</span><strong>${station.county_name || ""} ${station.town_name || ""}</strong>
+              <span>${text.observed}</span><strong>${station.observation_time || "-"}</strong>
+              <span>${text.weather}</span><strong>${station.weather || "-"}</strong>
+              <span>${text.temp}</span><strong>${fmt(station.air_temperature, "\u00b0C")}</strong>
+              <span>${text.humidity}</span><strong>${fmt(station.relative_humidity, "%")}</strong>
+              <span>${text.rain}</span><strong>${fmt(station.precipitation, " mm")}</strong>
+              <span>${text.wind}</span><strong>${fmt(station.wind_speed, " m/s")}</strong>
+              <span>${text.pressure}</span><strong>${fmt(station.air_pressure, " hPa")}</strong>
+              <span>${text.rainProb}</span><strong>${fmt(station.rain_probability, "%")}</strong>
+            </div>
+          `);
+      });
+
+      if (stations.length) {
+        const bounds = L.latLngBounds(stations.map(station => [station.lat, station.lon]));
+        map.fitBounds(bounds.pad(0.14), { maxZoom: countyName ? 11 : 8 });
+      }
+
+      updateCards(stations);
+      renderCountyChart(stations, countyName);
+      statusEl.textContent = `${countyName || text.allCounties}\uff1a${stations.length} ${text.stations}\uff0c${text.latest}\uff1a${latestObservationTime(stations)}`;
+    }
+
+    function renderCountyChart(stations, countyName) {
+      const sorted = [...stations]
+        .filter(station => station.air_temperature !== null && station.air_temperature !== undefined && station.air_temperature !== "")
+        .sort((a, b) => Number(b.rain_probability) - Number(a.rain_probability))
+        .slice(0, 40);
+
+      Plotly.newPlot("chart", [
+        {
+          x: sorted.map(station => station.station_name),
+          y: sorted.map(station => station.air_temperature),
+          type: "bar",
+          name: text.temp,
+          marker: { color: "#168fb2", line: { color: "#0f6f91", width: 1 } },
+          hovertemplate: `%{x}<br>${text.temp} %{y}\u00b0C<extra></extra>`
+        },
+        {
+          x: sorted.map(station => station.station_name),
+          y: sorted.map(station => station.relative_humidity),
+          type: "scatter",
+          mode: "lines+markers",
+          yaxis: "y2",
+          name: text.humidity,
+          line: { color: "#f28c28", width: 3 },
+          marker: { size: 7 },
+          hovertemplate: `%{x}<br>${text.humidity} %{y}%<extra></extra>`
+        },
+        {
+          x: sorted.map(station => station.station_name),
+          y: sorted.map(station => station.rain_probability),
+          type: "scatter",
+          mode: "lines+markers",
+          yaxis: "y2",
+          name: text.rainProb,
+          line: { color: "#5b63d3", width: 3, dash: "dot" },
+          marker: { size: 7 },
+          hovertemplate: `%{x}<br>${text.rainProb} %{y}%<extra></extra>`
+        }
+      ], {
+        title: { text: `${countyName || text.allCounties}${text.station}${text.rainProb}`, font: { size: 16 } },
+        paper_bgcolor: "rgba(0,0,0,0)",
+        plot_bgcolor: "rgba(246,250,252,0.65)",
+        margin: { t: 58, r: 54, b: 92, l: 54 },
+        xaxis: { title: text.station, tickangle: -45, automargin: true, gridcolor: "#e0ebf1" },
+        yaxis: { title: `${text.temp} (\u00b0C)`, gridcolor: "#e0ebf1" },
+        yaxis2: { title: `${text.humidity} / ${text.rainProb} (%)`, overlaying: "y", side: "right", gridcolor: "#e0ebf1" },
+        legend: { orientation: "h", x: 0, y: 1.12 },
+        font: { family: '"Segoe UI", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif', color: "#24394c" }
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    async function boot() {
+      try {
+        statusEl.textContent = text.loading;
+        await loadMap();
+      } catch (error) {
+        statusEl.textContent = `${text.loadFailed}\uff1a${error.message}`;
+      }
+    }
+
+    countySelect.addEventListener("change", event => renderCounty(event.target.value));
+    document.getElementById("refreshBtn").addEventListener("click", boot);
+    boot();
+  </script>
+</body>
+</html>
