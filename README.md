@@ -64,6 +64,18 @@ Implemented endpoints:
 - `GET /api/summary`
 - `GET /api/stations/{station_id}/predictions`
 
+## Deploy to Vercel
+
+This repo includes `api/index.py` and `vercel.json` for Vercel Python Serverless deployment.
+
+Set this environment variable in Vercel:
+
+```env
+CWA_API_KEY=your_token_here
+```
+
+Vercel does not use the local `weather.db`. In production, the API fetches live CWA data and caches it briefly in memory.
+
 ## Dashboard Features
 
 - County/city filter
