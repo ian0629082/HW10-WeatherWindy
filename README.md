@@ -2,6 +2,10 @@
 
 This project fetches Taiwan CWA dataset `O-A0001-001`, saves it as CSV, imports it into SQLite, and serves a FastAPI dashboard API.
 
+## Live Demo
+
+<https://hw-10-weather-windy.vercel.app/>
+
 ## Setup
 
 Install dependencies:
