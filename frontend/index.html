@@ -4,8 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>&#20013;&#22830;&#27683;&#35937;&#32626;&#21363;&#26178;&#22825;&#27683;&#20736;&#34920;&#26495;</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
+  <script src="https://api.windy.com/assets/map-forecast/libBoot.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <style>
     :root {
@@ -207,7 +208,26 @@
     }
     .panel-title { margin: 0; font-size: 16px; font-weight: 800; }
     .panel-subtitle { color: #6f8291; font-size: 12px; white-space: nowrap; }
-    #map, #chart { width: 100%; height: 100%; min-height: 500px; }
+    #windy, #chart { width: 100%; height: 100%; min-height: 500px; }
+    .layer-picker {
+      display: flex;
+      gap: 6px;
+    }
+    .layer-picker button {
+      min-height: 30px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      background: white;
+      color: #4a6072;
+      border: 1px solid #c9d8e2;
+      box-shadow: none;
+    }
+    .layer-picker button.active {
+      border-color: #0f74bd;
+      background: linear-gradient(135deg, #0f74bd, #168fb2);
+      color: white;
+    }
     .leaflet-popup-content-wrapper {
       border-radius: 8px;
       box-shadow: 0 12px 32px rgba(21, 48, 68, 0.2);
@@ -234,7 +254,7 @@
       .controls, .field, select, button { width: 100%; }
       .cards { grid-template-columns: 1fr; }
       .panel { min-height: 460px; }
-      #map, #chart { min-height: 400px; }
+      #windy, #chart { min-height: 400px; }
     }
   </style>
 </head>
@@ -285,9 +305,9 @@
       <section class="panel">
         <div class="panel-head">
           <h2 class="panel-title">&#28204;&#31449;&#22320;&#22294;</h2>
-          <span class="panel-subtitle">&#38991;&#33394;&#20195;&#34920;&#27683;&#28331;&#21312;&#38291;</span>
+          <div class="layer-picker" id="layerPicker"></div>
         </div>
-        <div id="map"></div>
+        <div id="windy"></div>
       </section>
       <section class="panel">
         <div class="panel-head">
@@ -321,15 +341,58 @@
     const api = "";
     const statusEl = document.getElementById("status");
     const countySelect = document.getElementById("countySelect");
-    const map = L.map("map", { zoomControl: false }).setView([23.7, 121], 7);
-    const markers = L.layerGroup().addTo(map);
+    const layerPicker = document.getElementById("layerPicker");
+    const markers = L.layerGroup();
+    let map = null;
+    let windyAPI = null;
     let allStations = [];
 
-    L.control.zoom({ position: "bottomright" }).addTo(map);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: "&copy; OpenStreetMap contributors"
-    }).addTo(map);
+    const overlayLabels = {
+      wind: "風", rain: "雨", rainAccu: "累積雨量", clouds: "雲",
+      temp: "氣溫", pressure: "氣壓", gust: "陣風", radar: "雷達",
+      snowAccu: "降雪", rh: "濕度"
+    };
+
+    function buildLayerPicker() {
+      const allowed = windyAPI.store.getAllowed("overlay");
+      const current = windyAPI.store.get("overlay");
+      layerPicker.innerHTML = "";
+      allowed.forEach(overlay => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.overlay = overlay;
+        button.textContent = overlayLabels[overlay] || overlay;
+        button.classList.toggle("active", overlay === current);
+        layerPicker.appendChild(button);
+      });
+    }
+
+    async function initWindy() {
+      const { windy_api_key: key } = await json("/api/config");
+      if (!key) throw new Error("Missing Windy API key (set VITE_WINDY_API_KEY in .env)");
+
+      await new Promise((resolve, reject) => {
+        try {
+          windyInit({ key, lat: 23.7, lon: 121, zoom: 7, verbose: false }, api => {
+            windyAPI = api;
+            map = api.map;
+            markers.addTo(map);
+            L.control.zoom({ position: "bottomright" }).addTo(map);
+            buildLayerPicker();
+            resolve();
+          });
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }
+
+    layerPicker.addEventListener("click", event => {
+      const button = event.target.closest("button[data-overlay]");
+      if (!button || !windyAPI) return;
+      windyAPI.store.set("overlay", button.dataset.overlay);
+      [...layerPicker.querySelectorAll("button")].forEach(el => el.classList.toggle("active", el === button));
+    });
 
     function fmt(value, suffix = "") {
       return value === null || value === undefined || value === "" ? "-" : `${value}${suffix}`;
@@ -497,6 +560,7 @@
     async function boot() {
       try {
         statusEl.textContent = text.loading;
+        if (!map) await initWindy();
         await loadMap();
       } catch (error) {
         statusEl.textContent = `${text.loadFailed}\uff1a${error.message}`;
@@ -506,6 +570,7 @@
     countySelect.addEventListener("change", event => renderCounty(event.target.value));
     document.getElementById("refreshBtn").addEventListener("click", boot);
     boot();
+    setInterval(() => { if (map) loadMap(); }, 5 * 60 * 1000);
   </script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import sqlite3
 import time
 
@@ -7,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from fetch_weather import get_authorization, request_json, station_rows
+from fetch_weather import get_authorization, load_env, request_json, station_rows
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -144,6 +145,13 @@ def dashboard():
     if not index_path.exists():
         return {"message": "CWA Weather Dashboard API", "docs": "/docs"}
     return FileResponse(index_path)
+
+
+@app.get("/api/config")
+def config():
+    load_env()
+    windy_api_key = os.getenv("VITE_WINDY_API_KEY") or os.getenv("WINDY_API_KEY") or ""
+    return {"windy_api_key": windy_api_key}
 
 
 @app.get("/api/health")
